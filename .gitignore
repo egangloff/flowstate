@@ -37,3 +37,15 @@ coverage/
 
 # Docker
 docker-data/
+
+# build output
+dist/
+*.tsbuildinfo
+
+# env
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+.vscode/

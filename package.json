@@ -1,0 +1,21 @@
+{
+  "name": "flowstate",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.30.0",
+  "dependencies": {
+    "@fastify/env": "^5.0.3",
+    "fastify": "^5.7.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}

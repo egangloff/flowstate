@@ -1,18 +1,13 @@
 import { randomUUID } from 'node:crypto'
+import type { State, StateContext, StoreEntry, RunId } from '@types'
 
-// Map<runId, { state, createdAt }>
-const store = new Map()
+// Map<runId, { state }>
+const store = new Map<RunId, StoreEntry>()
 
 // Map<contextKey, runId>
-const contextIndex = new Map()
+const contextIndex = new Map<string, RunId>()
 
-const DEFAULT_STATE = {
-  meta: {
-    version: 1,
-    step: 0,
-    status: 'running'
-  },
-  context: {},
+const DEFAULT_STATE: Omit<State, 'meta' | 'context'> = {
   assets: {},
   sections: [],
   output: {},
@@ -20,22 +15,24 @@ const DEFAULT_STATE = {
   debug: {}
 }
 
-export function createState({ context = {} } = {}) {
+export function createState(
+  { context = {} }: { context?: StateContext } = {}
+): { runId: RunId; state: State } {
   const runId = randomUUID()
 
-  const state = structuredClone(DEFAULT_STATE)
-
-  state.meta = {
-    id: runId,
-    version: 1,
-    step: 0,
-    status: 'running',
-    createdAt: Date.now(),
-    updatedAt: Date.now()
+  const state: State = {
+    ...structuredClone(DEFAULT_STATE),
+    meta: {
+      id: runId,
+      version: 1,
+      step: 0,
+      status: 'running',
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    },
+    context
   }
 
-  state.context = context
-  
   const key = makeContextKey(context)
   if (key) {
     contextIndex.set(key, runId)
@@ -46,29 +43,27 @@ export function createState({ context = {} } = {}) {
   return { runId, state }
 }
 
-export function setState(runId, newState) {
+export function setState(runId: RunId, newState: State): State | null {
   const entry = store.get(runId)
   if (!entry) return null
 
-  // cleanup old index
   const oldKey = makeContextKey(entry.state.context)
   if (oldKey) contextIndex.delete(oldKey)
 
+  newState.meta.updatedAt = Date.now()
   entry.state = newState
-  entry.state.meta.updatedAt = Date.now()
 
-  // index new context
   const newKey = makeContextKey(newState.context)
   if (newKey) contextIndex.set(newKey, runId)
 
   return entry.state
 }
 
-export function getState(runId) {
+export function getState(runId: RunId): State | null {
   return store.get(runId)?.state ?? null
 }
 
-export function deleteState(runId) {
+export function deleteState(runId: RunId): boolean {
   const entry = store.get(runId)
   if (!entry) return false
 
@@ -78,7 +73,10 @@ export function deleteState(runId) {
   return store.delete(runId)
 }
 
-export function updateState(runId, updater) {
+export function updateState(
+  runId: RunId,
+  updater: (state: State) => void
+): State | null {
   const entry = store.get(runId)
   if (!entry) return null
 
@@ -88,9 +86,9 @@ export function updateState(runId, updater) {
   return entry.state
 }
 
-
-
-export function getStateByContext(context) {
+export function getStateByContext(
+  context: StateContext
+): State | null {
   const key = makeContextKey(context)
   if (!key) return null
 
@@ -100,8 +98,10 @@ export function getStateByContext(context) {
   return getState(runId)
 }
 
-
-export function updateContext(runId, patch) {
+export function updateContext(
+  runId: RunId,
+  patch: Partial<StateContext>
+): StateContext | null {
   const entry = store.get(runId)
   if (!entry) return null
 
@@ -111,14 +111,12 @@ export function updateContext(runId, patch) {
   }
 
   const key = makeContextKey(entry.state.context)
-  if (key) {
-    contextIndex.set(key, runId)
-  }
+  if (key) contextIndex.set(key, runId)
 
   return entry.state.context
 }
 
-function makeContextKey(context) {
+function makeContextKey(context: StateContext): string | null {
   if (!context.engine || !context.executionId) return null
   return `${context.engine}:${context.executionId}`
 }

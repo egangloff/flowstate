@@ -1,15 +1,28 @@
-export function deepMerge(target, patch) {
-  for (const key of Object.keys(patch)) {
+import type { DeepPartial } from '@types'
+
+export function deepMerge<T extends object>(
+  target: T,
+  source: DeepPartial<T>
+): T {
+  for (const key in source) {
+    const value = source[key]
+
     if (
-      patch[key] &&
-      typeof patch[key] === 'object' &&
-      !Array.isArray(patch[key])
+      value &&
+      typeof value === 'object' &&
+      !Array.isArray(value)
     ) {
-      target[key] ??= {}
-      deepMerge(target[key], patch[key])
-    } else {
-      target[key] = patch[key]
+      if (!(key in target)) {
+        ;(target as any)[key] = {}
+      }
+      deepMerge(
+        (target as any)[key],
+        value as any
+      )
+    } else if (value !== undefined) {
+      ;(target as any)[key] = value
     }
   }
+
   return target
 }

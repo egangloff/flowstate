@@ -4,15 +4,20 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
 
+    "strict": true,
+
     "rootDir": "src",
     "outDir": "dist",
 
-    "strict": true,
+    "baseUrl": "src",
+    "paths": {
+      "@types": ["types/index.ts"],
+      "@types/*": ["types/*"]
+    },
+
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-
-    "sourceMap": true
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["src"]
 }

@@ -6,26 +6,57 @@ import {
   updateContext,
   getStateByContext
 } from '../store.js'
+import type { StateContext, State, DeepPartial } from '@types'
 import { deepMerge } from '../utils/merge.js'
+import type { FastifyInstance } from 'fastify'
 
-export async function stateRoutes(fastify) {
+type StateParams = {
+  id: string
+}
 
-  // CREATE
-  fastify.post('/state', async (req) => {
-    return createState(req.body || {})
+type StatePatchBody = DeepPartial<State>
+
+type StateReply =
+  | State
+  | { error: string }
+
+export async function stateRoutes(fastify: FastifyInstance) {
+
+  /**
+   *  CREATE 
+   */ 
+  fastify.post<{
+    Body: { context?: StateContext }
+  }>('/state', async (req) => {
+    return createState(req.body ?? {})
   })
 
-  // GET
-  fastify.get('/state/:id', async (req, reply) => {
+  /**
+   *  GET 
+   */
+  fastify.get<{
+    Params: { id: string }
+    Reply: State | { error: string }
+  }>('/state/:id', async (req, reply) => {
     const state = getState(req.params.id)
-    if (!state) return reply.code(404).send({ error: 'State not found' })
+    if (!state) {
+      return reply.code(404).send({ error: 'State not found' })
+    }
     return state
   })
 
-  // PATCH
-  fastify.patch('/state/:id', async (req, reply) => {
+  /**
+   *  PATCH 
+   */
+  fastify.patch<{
+    Params: StateParams,
+    Body: StatePatchBody
+    Reply: StateReply | { error: string }
+  }>('/state/:id', async (req, reply) => {
     const state = getState(req.params.id)
-    if (!state) return reply.code(404).send({ error: 'State not found' })
+    if (!state) {
+      return reply.code(404).send({ error: 'State not found' })
+    }
 
     deepMerge(state, req.body)
     setState(req.params.id, state)
@@ -33,8 +64,15 @@ export async function stateRoutes(fastify) {
     return state
   })
 
-  // APPEND
-  fastify.post('/state/:id/append', async (req, reply) => {
+
+  /**
+   *  APPEND 
+   */
+  fastify.post<{
+    Params: { id: string }
+    Body: { path: keyof State; value: unknown }
+    Reply: State | { error: string }
+  }>('/state/:id/append', async (req, reply) => {
     const { path, value } = req.body
     const state = getState(req.params.id)
 
@@ -42,24 +80,36 @@ export async function stateRoutes(fastify) {
       return reply.code(404).send({ error: 'State not found' })
     }
 
-    if (!path || !Array.isArray(state[path])) {
+    const target = state[path]
+    if (!Array.isArray(target)) {
       return reply.code(400).send({
         error: 'Invalid append path (must be an array)'
       })
     }
 
-    state[path].push(value)
+    target.push(value)
     return state
   })
+
   
-  // DELETE
-  fastify.delete('/state/:id', async (req) => {
+  /**
+   *  DELETE 
+   */
+  fastify.delete<{
+    Params: { id: string }
+  }>('/state/:id', async (req) => {
     deleteState(req.params.id)
     return { ok: true }
   })
   
-  // UPDATE CONTEXT
-  fastify.patch('/state/:runId/context', async (req, reply) => {
+  /**
+   *  UPDATE CONTEXT 
+   */
+  fastify.patch<{
+    Params: { runId: string }
+    Body: StateContext
+    Reply: { runId: string; context: StateContext } | { error: string }
+  }>('/state/:runId/context', async (req, reply) => {
     const { runId } = req.params
     const patch = req.body
 
@@ -76,9 +126,15 @@ export async function stateRoutes(fastify) {
 
     return { runId, context }
   })
+
   
-  // GET BY CONTEXT
-  fastify.post('/state/by-context', async (req, reply) => {
+  /**
+   *  GET BY CONTEXT 
+   */
+  fastify.post<{
+    Body: { engine: string; executionId: string }
+    Reply: State | { error: string; context?: StateContext }
+  }>('/state/by-context', async (req, reply) => {
     const { engine, executionId } = req.body
 
     if (!engine || !executionId) {

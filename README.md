@@ -61,6 +61,24 @@ FlowState uses a **versioned, JSON-only, state object** designed to be:
 ---
 
 ### High-level structure
+FlowState distinguishes between:
+  - the State Object (domain model, persisted in memory)
+  - the API Response Envelope (transport wrapper)
+  
+#### API Response Envelope
+All HTTP endpoints return a response wrapped with a runId.
+```json
+{
+  "runId": "string",
+  "state": { /* FlowState object */ }
+}
+```
+  - runId is used to reference the state in subsequent calls
+  - state contains the actual FlowState data
+
+#### State Object (v1)
+This is the internal state model managed by FlowState.
+It is the object that is mutated, patched, appended to, and consumed by workflows and LLMs.
 
 ```json
 {
@@ -96,6 +114,12 @@ status: running | done | error
 High-level configuration and intent of the run.
 ```json
 {
+  "engine": "n8n",
+  "n8n": {
+    "executionId": "123456",
+    "workflowId": "789",
+    "workflowName": "Article Generator"
+  },
   "topic": "AI consciousness",
   "language": "en",
   "tone": "informative",
@@ -108,10 +132,22 @@ High-level configuration and intent of the run.
   }
 }
 ```
-Rules:
-Usually immutable during a run
-Arbitrary keys allowed
-No binary data
+Rule:
+  - engine is mandatory (n8n, airflow, custom, etc.)
+  - Engine-specific identifiers (e.g. n8n.executionId) are strongly recommended
+  - Usually immutable during a run
+  - Arbitrary keys allowed
+  - No binary data
+  - Must be JSON-serializable
+  - Used for:
+    - correlation
+    - debugging
+    - recovery
+    - cross-system tracing
+
+🔑 Important
+External workflow engines must inject their own execution identifiers into context.
+FlowState never assumes or generates external identity.
 
 #### Assets
 References to external media generated or used during the run.

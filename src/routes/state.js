@@ -4,6 +4,7 @@ import {
   setState,
   deleteState,
   updateContext,
+  getStateByContext
 } from '../store.js'
 import { deepMerge } from '../utils/merge.js'
 
@@ -57,30 +58,43 @@ export async function stateRoutes(fastify) {
     return { ok: true }
   })
   
-  
-  fastify.patch('/state/:runId/context', async (request, reply) => {
-    const { runId } = request.params;
-    const patch = request.body;
+  // UPDATE CONTEXT
+  fastify.patch('/state/:runId/context', async (req, reply) => {
+    const { runId } = req.params
+    const patch = req.body
 
     if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
       return reply.code(400).send({
         error: 'context patch must be a JSON object'
-      });
+      })
     }
 
-    const state = getState(runId);
+    const context = updateContext(runId, patch)
+    if (!context) {
+      return reply.code(404).send({ error: 'state not found' })
+    }
+
+    return { runId, context }
+  })
+  
+  // GET BY CONTEXT
+  fastify.post('/state/by-context', async (req, reply) => {
+    const { engine, executionId } = req.body
+
+    if (!engine || !executionId) {
+      return reply.code(400).send({
+        error: 'engine and executionId required'
+      })
+    }
+
+    const state = getStateByContext({ engine, executionId })
     if (!state) {
       return reply.code(404).send({
-        error: 'state not found',
-        runId
-      });
+        error: 'state not found for context',
+        context: { engine, executionId }
+      })
     }
 
-    const context = updateContext(runId, patch);
-
-    return {
-      runId,
-      context
-    };
-  });
+    return state
+  })
 }

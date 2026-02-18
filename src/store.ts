@@ -16,12 +16,34 @@ const DEFAULT_STATE: Omit<State, 'meta' | 'context'> = {
 }
 
 export function createState(
-  { context = {} }: { context?: StateContext } = {}
+  {
+    context = {},
+    onConflict = 'error'
+  }: {
+    context?: StateContext
+    onConflict?: 'error' | 'resume' | 'replace'
+  } = {}
 ): { runId: RunId; state: State } {
+  const existingRunId = getRunIdByContext(context)
+
+  if (existingRunId) {
+    if (onConflict === 'resume') {
+      const state = getState(existingRunId)!
+      return { runId: existingRunId, state }
+    }
+
+    if (onConflict === 'replace') {
+      deleteState(existingRunId)
+    }
+
+    if (onConflict === 'error') {
+      throw new Error('STATE_CONTEXT_CONFLICT')
+    }
+  }
+
   const runId = randomUUID()
 
   const state: State = {
-    ...structuredClone(DEFAULT_STATE),
     meta: {
       id: runId,
       version: 1,
@@ -30,13 +52,16 @@ export function createState(
       createdAt: Date.now(),
       updatedAt: Date.now()
     },
-    context
+    context,
+    assets: {},
+    sections: [],
+    output: {},
+    errors: [],
+    debug: {}
   }
 
   const key = makeContextKey(context)
-  if (key) {
-    contextIndex.set(key, runId)
-  }
+  if (key) contextIndex.set(key, runId)
 
   store.set(runId, { state })
 
@@ -119,4 +144,12 @@ export function updateContext(
 function makeContextKey(context: StateContext): string | null {
   if (!context.engine || !context.executionId) return null
   return `${context.engine}:${context.executionId}`
+}
+
+function getRunIdByContext(
+  context: StateContext
+): RunId | null {
+  const key = makeContextKey(context)
+  if (!key) return null
+  return contextIndex.get(key) ?? null
 }

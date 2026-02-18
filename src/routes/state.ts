@@ -26,10 +26,47 @@ export async function stateRoutes(fastify: FastifyInstance) {
    *  CREATE 
    */ 
   fastify.post<{
-    Body: { context?: StateContext }
-  }>('/state', async (req) => {
-    return createState(req.body ?? {})
-  })
+    Body: {
+      context?: StateContext
+      onConflict?: 'error' | 'resume' | 'replace'
+    }
+    Reply:
+      | { runId: string; state: State }
+      | { error: string }
+  }>(
+    '/state',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            context: {
+              type: 'object',
+              additionalProperties: true
+            },
+            onConflict: {
+              type: 'string',
+              enum: ['error', 'resume', 'replace']
+            }
+          }
+        }
+      }
+    },
+    async (req, reply) => {
+      try {
+        return createState(req.body ?? {})
+      } catch (err) {
+        if ((err as Error).message === 'STATE_CONTEXT_CONFLICT') {
+          return reply.code(409).send({
+            error: 'state already exists for this context'
+          })
+        }
+        throw err
+      }
+    }
+  )
+
 
   /**
    *  GET 

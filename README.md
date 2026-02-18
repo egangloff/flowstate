@@ -315,13 +315,96 @@ Response (200)
 }
 ```
 
-Error Cases
-| Status | Reason                             |
-| ------ | ---------------------------------- |
-| 400    | Invalid or missing context fields  |
-| 404    | No state matches the given context |
-| 409    | Multiple states match the context  |
-| 500    | Internal error                     |
+## 🔁 State creation & conflict resolution
+
+### POST /state
+
+Create a new state **or resolve an existing one based on context**.
+
+This endpoint is **idempotent by context** when `onConflict` is provided.
+
+---
+
+### Request body
+
+```json
+{
+  "context": {
+    "engine": "n8n",
+    "executionId": "123456"
+  },
+  "onConflict": "resume"
+}
+```
+
+#### Fields
+
+| Field        | Type   | Required | Description                                    |
+| ------------ | ------ | -------- | ---------------------------------------------- |
+| `context`    | object | optional | Context used to identify and correlate the run |
+| `onConflict` | string | optional | Conflict resolution strategy                   |
+
+#### onConflict values
+
+| Value             | Behavior                                                               |
+| ----------------- | ---------------------------------------------------------------------- |
+| `error` (default) | Return **409 Conflict** if a state already exists for the same context |
+| `resume`          | Return the **existing state**                                          |
+| `replace`         | Delete the existing state and **create a new one**                     |
+
+⚠️ Invalid values result in 400 Bad Request.
+
+
+### Context conflict definition
+
+A conflict occurs when another state already exists with the same context key.
+
+By default, the context key is:
+
+```json
+engine + executionId
+```
+
+#### Example
+
+```json
+{
+  "engine": "n8n",
+  "executionId": "123456"
+}
+```
+
+#### Response
+```json
+{
+  "runId": "uuid",
+  "state": { ... }
+}
+```
+- runId uniquely identifies the resolved state
+- state always follows the FlowState v1 format
+
+### Guarantees
+  - No implicit behavior
+  - No silent fallback
+  - Conflict resolution is explicit and client-controlled
+  - Safe for retries, crashes, and workflow restarts
+
+#### Typical usage
+n8n – normal run
+```json
+{ "onConflict": "error" }
+```
+
+n8n – retry after crach
+```json
+{ "onConflict": "resume" }
+```
+
+Manuel Restart / Reset
+```json
+{ "onConflict": "replace" }
+```
 
 ## Error Model
 | Code | Meaning                            |

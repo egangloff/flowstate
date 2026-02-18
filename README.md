@@ -280,6 +280,49 @@ Guarantees
 State is removed immediately
 Further access returns 404
 
+## 🔎 Retrieve State by Context (v1)
+FlowState allows retrieving a state without knowing the runId, by querying its execution context.
+
+This is especially useful for:
+  - resuming interrupted workflows
+  - correlating external systems (n8n, Airflow, custom engines)
+  - recovering state after a crash or restart
+  - avoiding manual runId propagation across steps
+
+### POST /state/by-context
+Retrieve a state using context identifiers instead of runId.
+
+Request
+```json
+{
+  "engine": "n8n",
+  "executionId": "123456"
+}
+```
+Rules
+  - engine is mandatory
+  - At least one additional context key is required
+  - Matching is done against state.context
+  - Matching is exact (no partial / fuzzy matching)
+  - Returns at most one state
+  - If multiple states match, the request fails with 409
+
+Response (200)
+```json
+{
+  "runId": "uuid",
+  "state": { /* FlowState object */ }
+}
+```
+
+Error Cases
+| Status | Reason                             |
+| ------ | ---------------------------------- |
+| 400    | Invalid or missing context fields  |
+| 404    | No state matches the given context |
+| 409    | Multiple states match the context  |
+| 500    | Internal error                     |
+
 ## Error Model
 | Code | Meaning                            |
 | ---- | ---------------------------------- |
@@ -287,7 +330,6 @@ Further access returns 404
 | 404  | Unknown runId                      |
 | 409  | Invalid state mutation             |
 | 500  | Internal error (never leaks state) |
-
 
 ## Design Invariants
 State is never implicitly merged

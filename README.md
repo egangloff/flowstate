@@ -25,13 +25,15 @@ This becomes painful when you need to:
 ## 🎯 What FlowState Is (and Is Not)
 
 ### ✅ What it is
-- In-memory state manager
-- HTTP API
-- Run-scoped state (`runId`)
-- Append / patch / read / delete state
-- TTL-based lifecycle
-- Docker-friendly
-- Simple and fast
+  - In-memory state manager
+  - HTTP API
+  - Run-scoped state (runId)
+  - Context-aware state resolution (by-context)
+  - Conflict-aware creation (onConflict: resume | replace)
+  - Append / patch / read / delete state
+  - TTL-based lifecycle
+  - Docker-friendly
+  - Simple and fast
 
 ### ❌ What it is not
 - A database

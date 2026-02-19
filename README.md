@@ -110,7 +110,7 @@ Metadata describing the lifecycle of the run.
 ```
 version is mandatory=
 step controls iteration
-status: running | done | error
+status: running | success | error
 
 #### Context
 High-level configuration and intent of the run.

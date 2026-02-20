@@ -3,9 +3,10 @@ services:
     build: .
     container_name: flowstate-api
     ports:
-      - "${PORT:-3001}:${PORT:-3001}"
+      - "${FLOWSTATE_PORT:-3001}:${FLOWSTATE_PORT:-3001}"
     environment:
-      PORT: ${PORT:-3001}
+      FLOWSTATE_PORT: ${FLOWSTATE_PORT:-3001}
+      FLOWSTATE_API_KEY: ${FLOWSTATE_API_KEY}
     env_file:
       - .env
     restart: unless-stopped

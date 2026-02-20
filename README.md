@@ -228,6 +228,30 @@ Optional diagnostics for development.
 ```
 
 ## 🔌 HTTP API Contract (v1)
+
+### 🔐 Authentication
+FlowState API requires a Bearer token for all /state endpoints.
+
+#### Header
+```json
+Authorization: Bearer <FLOWSTATE_API_KEY>
+```
+
+#### Example
+```json
+curl -X POST http://localhost:3001/state \
+  -H "Authorization: Bearer fs_live_xxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+#### Errors
+| Status | Meaning       |
+| ------ | ------------- |
+| 401    | Missing token |
+| 403    | Invalid token |
+
+
 ### Base URL
 ```json
 http://localhost:3001

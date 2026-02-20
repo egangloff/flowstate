@@ -21,6 +21,18 @@ type StateReply =
   | { error: string }
 
 export async function stateRoutes(fastify: FastifyInstance) {
+  
+  fastify.addHook('onRequest', async (request, reply) => {
+    const authHeader = request.headers.authorization
+
+    if (!authHeader?.startsWith('Bearer ')) {
+      return reply.code(401).send({ error: 'Missing token' })
+    }
+
+    if (authHeader.slice(7) !== process.env.FLOWSTATE_API_KEY) {
+      return reply.code(403).send({ error: 'Invalid token' })
+    }
+  })
 
   /**
    *  CREATE 

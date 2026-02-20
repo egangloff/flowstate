@@ -1,4 +1,4 @@
-# FlowState — État externe pour workflows stateless
+# FlowState — Gestion d'État externe pour workflows stateless
 
 ## Introduction
 

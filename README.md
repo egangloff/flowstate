@@ -239,7 +239,7 @@ Authorization: Bearer <FLOWSTATE_API_KEY>
 
 #### Example
 ```json
-curl -X POST http://localhost:3001/state \
+curl -X POST http://localhost:3004/state \
   -H "Authorization: Bearer fs_live_xxxxxxxxx" \
   -H "Content-Type: application/json" \
   -d '{}'
@@ -254,7 +254,7 @@ curl -X POST http://localhost:3001/state \
 
 ### Base URL
 ```json
-http://localhost:3001
+http://localhost:4
 ```
 
 ### POST /state

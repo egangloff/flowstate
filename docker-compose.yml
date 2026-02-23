@@ -3,9 +3,9 @@ services:
     build: .
     container_name: flowstate-api
     ports:
-      - "${FLOWSTATE_PORT:-3001}:${FLOWSTATE_PORT:-3001}"
+      - "${FLOWSTATE_PORT:-3004}:${FLOWSTATE_PORT:-3004}"
     environment:
-      FLOWSTATE_PORT: ${FLOWSTATE_PORT:-3001}
+      FLOWSTATE_PORT: ${FLOWSTATE_PORT:-3004}
       FLOWSTATE_API_KEY: ${FLOWSTATE_API_KEY}
       FLOWSTATE_DEFAULT_TTL: ${FLOWSTATE_DEFAULT_TTL:-3600}
       FLOWSTATE_MAX_TTL: ${FLOWSTATE_MAX_TTL:-86400}

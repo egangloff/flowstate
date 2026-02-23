@@ -11,6 +11,6 @@ COPY src ./src
 RUN pnpm build
 
 ENV NODE_ENV=production
-EXPOSE 3001
+EXPOSE 3004
 
 CMD ["node", "dist/index.js"]

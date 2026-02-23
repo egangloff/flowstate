@@ -7,6 +7,21 @@ const store = new Map<RunId, StoreEntry>()
 // Map<contextKey, runId>
 const contextIndex = new Map<string, RunId>()
 
+const DEFAULT_TTL_MS =
+  (Number(process.env.FLOWSTATE_DEFAULT_TTL) || 3600) * 1000
+
+const MAX_TTL_MS =
+  (Number(process.env.FLOWSTATE_MAX_TTL) || 86400) * 1000
+
+const SWEEP_INTERVAL_MS = 5 * 60 * 1000
+const MAX_CONTEXTS = 5000
+
+if (DEFAULT_TTL_MS > MAX_TTL_MS) {
+  throw new Error(
+    "FLOWSTATE_DEFAULT_TTL cannot exceed FLOWSTATE_MAX_TTL"
+  )
+}
+
 const DEFAULT_STATE: Omit<State, 'meta' | 'context'> = {
   assets: {},
   sections: [],
@@ -15,15 +30,30 @@ const DEFAULT_STATE: Omit<State, 'meta' | 'context'> = {
   debug: {}
 }
 
+function resolveTTL(ttlSeconds?: number): number {
+  const ttlMs = ttlSeconds
+    ? ttlSeconds * 1000
+    : DEFAULT_TTL_MS
+
+  return Math.min(ttlMs, MAX_TTL_MS)
+}
+
 export function createState(
   {
     context = {},
-    onConflict = 'error'
+    onConflict = 'error',
+    ttl
   }: {
     context?: StateContext
     onConflict?: 'error' | 'resume' | 'replace'
+    ttl?: number
   } = {}
 ): { runId: RunId; state: State } {
+
+  if (store.size >= MAX_CONTEXTS) {
+    throw new Error('FLOWSTATE_MAX_CONTEXTS_REACHED')
+  }
+
   const existingRunId = getRunIdByContext(context)
 
   if (existingRunId) {
@@ -63,7 +93,10 @@ export function createState(
   const key = makeContextKey(context)
   if (key) contextIndex.set(key, runId)
 
-  store.set(runId, { state })
+  store.set(runId, {
+    state,
+    expiresAt: Date.now() + resolveTTL(ttl)
+  })
 
   return { runId, state }
 }
@@ -76,7 +109,9 @@ export function setState(runId: RunId, newState: State): State | null {
   if (oldKey) contextIndex.delete(oldKey)
 
   newState.meta.updatedAt = Date.now()
+
   entry.state = newState
+  entry.expiresAt = Date.now() + DEFAULT_TTL_MS
 
   const newKey = makeContextKey(newState.context)
   if (newKey) contextIndex.set(newKey, runId)
@@ -85,7 +120,15 @@ export function setState(runId: RunId, newState: State): State | null {
 }
 
 export function getState(runId: RunId): State | null {
-  return store.get(runId)?.state ?? null
+  const entry = store.get(runId)
+  if (!entry) return null
+
+  if (entry.expiresAt <= Date.now()) {
+    deleteState(runId)
+    return null
+  }
+
+  return entry.state
 }
 
 export function deleteState(runId: RunId): boolean {
@@ -107,6 +150,7 @@ export function updateState(
 
   updater(entry.state)
   entry.state.meta.updatedAt = Date.now()
+  entry.expiresAt = Date.now() + DEFAULT_TTL_MS
 
   return entry.state
 }
@@ -153,3 +197,15 @@ function getRunIdByContext(
   if (!key) return null
   return contextIndex.get(key) ?? null
 }
+
+function sweep() {
+  const now = Date.now()
+
+  for (const [runId, entry] of store.entries()) {
+    if (entry.expiresAt <= now) {
+      deleteState(runId)
+    }
+  }
+}
+
+setInterval(sweep, SWEEP_INTERVAL_MS)

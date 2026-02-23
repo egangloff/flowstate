@@ -27,14 +27,15 @@ export interface State {
   debug: Record<string, unknown>
 }
 
-export interface StoreEntry {
-  state: State
-}
-
 export type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends object
     ? T[K] extends any[]
       ? T[K]
       : DeepPartial<T[K]>
     : T[K]
+}
+
+export type StoreEntry = {
+  state: State
+  expiresAt: number
 }

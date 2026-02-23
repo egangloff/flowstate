@@ -22,6 +22,7 @@ export interface State {
   context: StateContext
   assets: Record<string, unknown>
   sections: unknown[]
+  appendCount: number
   output: Record<string, unknown>
   errors: unknown[]
   debug: Record<string, unknown>

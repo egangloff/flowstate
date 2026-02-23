@@ -2,6 +2,7 @@ import {
   createState,
   getState,
   setState,
+  updateState,
   deleteState,
   updateContext,
   getStateByContext
@@ -9,6 +10,8 @@ import {
 import type { StateContext, State, DeepPartial } from '@types'
 import { deepMerge } from '../utils/merge.js'
 import type { FastifyInstance } from 'fastify'
+import { applyMutation } from '../utils/mutation.js'
+import {getRunIdByContext} from '../store.js'
 
 type StateParams = {
   id: string
@@ -119,25 +122,34 @@ export async function stateRoutes(fastify: FastifyInstance) {
    */
   fastify.post<{
     Params: { id: string }
-    Body: { path: keyof State; value: unknown }
+    Body: { 
+      path: keyof State
+      value: unknown
+    }
     Reply: State | { error: string }
   }>('/state/:id/append', async (req, reply) => {
     const { path, value } = req.body
-    const state = getState(req.params.id)
 
-    if (!state) {
+    const updated = applyMutation(
+      req.params.id,
+      (s) => {
+        const target = s[path]
+
+        if (!Array.isArray(target)) {
+          throw new Error('INVALID_APPEND_PATH')
+        }
+
+        target.push(value)
+
+        s.appendCount += 1
+      }
+    )
+
+    if (!updated) {
       return reply.code(404).send({ error: 'State not found' })
     }
 
-    const target = state[path]
-    if (!Array.isArray(target)) {
-      return reply.code(400).send({
-        error: 'Invalid append path (must be an array)'
-      })
-    }
-
-    target.push(value)
-    return state
+    return updated
   })
 
   
@@ -201,5 +213,58 @@ export async function stateRoutes(fastify: FastifyInstance) {
     }
 
     return state
+  })
+  
+  
+  /**
+   * APPEND BY CONTEXT
+   */
+  fastify.post<{
+    Body: {
+      engine: string
+      executionId: string
+      path: keyof State
+      value: unknown
+    }
+    Reply: State | { error: string }
+  }>('/state/by-context/append', async (req, reply) => {
+    const { engine, executionId, path, value } = req.body
+
+    if (!engine || !executionId) {
+      return reply.code(400).send({
+        error: 'engine and executionId required'
+      })
+    }
+
+    const runId = getRunIdByContext({ engine, executionId })
+
+    if (!runId) {
+      return reply.code(404).send({
+        error: 'state not found for context'
+      })
+    }
+
+    const updated = applyMutation(
+      runId,
+      (s) => {
+        const target = s[path]
+
+        if (!Array.isArray(target)) {
+          throw new Error('INVALID_APPEND_PATH')
+        }
+
+        target.push(value)
+
+        s.appendCount += 1
+      }
+    )
+
+    if (!updated) {
+      return reply.code(404).send({
+        error: 'state not found'
+      })
+    }
+
+    return updated
   })
 }

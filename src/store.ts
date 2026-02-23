@@ -5,7 +5,7 @@ import type { State, StateContext, StoreEntry, RunId } from '@types'
 const store = new Map<RunId, StoreEntry>()
 
 // Map<contextKey, runId>
-const contextIndex = new Map<string, RunId>()
+export const contextIndex = new Map<string, RunId>()
 
 const DEFAULT_TTL_MS =
   (Number(process.env.FLOWSTATE_DEFAULT_TTL) || 3600) * 1000
@@ -25,6 +25,7 @@ if (DEFAULT_TTL_MS > MAX_TTL_MS) {
 const DEFAULT_STATE: Omit<State, 'meta' | 'context'> = {
   assets: {},
   sections: [],
+  appendCount: 0,
   output: {},
   errors: [],
   debug: {}
@@ -85,6 +86,7 @@ export function createState(
     context,
     assets: {},
     sections: [],
+    appendCount: 0,
     output: {},
     errors: [],
     debug: {}
@@ -190,7 +192,7 @@ function makeContextKey(context: StateContext): string | null {
   return `${context.engine}:${context.executionId}`
 }
 
-function getRunIdByContext(
+export function getRunIdByContext(
   context: StateContext
 ): RunId | null {
   const key = makeContextKey(context)

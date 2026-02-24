@@ -7,7 +7,7 @@ import {
   updateContext,
   getStateByContext
 } from '../store.js'
-import type { StateContext, State, DeepPartial } from '@types'
+import type { StateContext, State, DeepPartial, InitialState } from '@types'
 import { deepMerge } from '../utils/merge.js'
 import type { FastifyInstance } from 'fastify'
 import { applyMutation } from '../utils/mutation.js'
@@ -44,6 +44,7 @@ export async function stateRoutes(fastify: FastifyInstance) {
     Body: {
       context?: StateContext
       onConflict?: 'error' | 'resume' | 'replace'
+      state?: InitialState
     }
     Reply:
       | { runId: string; state: State }
@@ -63,6 +64,10 @@ export async function stateRoutes(fastify: FastifyInstance) {
             onConflict: {
               type: 'string',
               enum: ['error', 'resume', 'replace']
+            },
+            state: {
+              type: 'object',
+              additionalProperties: true
             }
           }
         }

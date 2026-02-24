@@ -8,6 +8,15 @@ export interface StateContext {
   [key: string]: unknown
 }
 
+export type InitialState = {
+  assets?: State['assets']
+  sections?: State['sections']
+  appendCount?: number
+  output?: State['output']
+  errors?: State['errors']
+  debug?: State['debug']
+}
+
 export interface StateMeta {
   id: RunId
   version: number

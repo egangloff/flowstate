@@ -43,11 +43,13 @@ export function createState(
   {
     context = {},
     onConflict = 'error',
-    ttl
+    ttl,
+    state: initialState
   }: {
     context?: StateContext
     onConflict?: 'error' | 'resume' | 'replace'
     ttl?: number
+    state?: Partial<State>
   } = {}
 ): { runId: RunId; state: State } {
 
@@ -84,12 +86,12 @@ export function createState(
       updatedAt: Date.now()
     },
     context,
-    assets: {},
-    sections: [],
-    appendCount: 0,
-    output: {},
-    errors: [],
-    debug: {}
+    assets: initialState?.assets ?? {},
+    sections: initialState?.sections ?? [],
+    appendCount: initialState?.appendCount ?? 0,
+    output: initialState?.output ?? {},
+    errors: initialState?.errors ?? [],
+    debug: initialState?.debug ?? {}
   }
 
   const key = makeContextKey(context)

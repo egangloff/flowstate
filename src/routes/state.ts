@@ -38,7 +38,7 @@ export async function stateRoutes(fastify: FastifyInstance) {
   })
 
   /**
-   *  CREATE 
+   *  CREATE STATE
    */ 
   fastify.post<{
     Body: {
@@ -89,7 +89,7 @@ export async function stateRoutes(fastify: FastifyInstance) {
 
 
   /**
-   *  GET 
+   *  GET STATE BY ID
    */
   fastify.get<{
     Params: { id: string }
@@ -103,7 +103,7 @@ export async function stateRoutes(fastify: FastifyInstance) {
   })
 
   /**
-   *  PATCH 
+   *  PATCH STATE BY ID
    */
   fastify.patch<{
     Params: StateParams,
@@ -123,7 +123,7 @@ export async function stateRoutes(fastify: FastifyInstance) {
 
 
   /**
-   *  APPEND 
+   *  APPEND BY ID
    */
   fastify.post<{
     Params: { id: string }
@@ -159,7 +159,7 @@ export async function stateRoutes(fastify: FastifyInstance) {
 
   
   /**
-   *  DELETE 
+   *  DELETE STATE BY ID
    */
   fastify.delete<{
     Params: { id: string }
@@ -169,7 +169,7 @@ export async function stateRoutes(fastify: FastifyInstance) {
   })
   
   /**
-   *  UPDATE CONTEXT 
+   *  UPDATE CONTEXT BY ID
    */
   fastify.patch<{
     Params: { runId: string }
@@ -195,7 +195,7 @@ export async function stateRoutes(fastify: FastifyInstance) {
 
   
   /**
-   *  GET BY CONTEXT 
+   *  GET STATE BY CONTEXT 
    */
   fastify.post<{
     Body: { engine: string; executionId: string }
@@ -271,5 +271,47 @@ export async function stateRoutes(fastify: FastifyInstance) {
     }
 
     return updated
+  })
+  
+/**
+* PATCH STATE BY CONTEXT
+*/
+fastify.patch<{
+  Body: {
+    engine: string
+    executionId: string
+    patch: DeepPartial<State>
+  }
+  Reply: State | { error: string }
+  }>('/state/by-context', async (req, reply) => {
+    const { engine, executionId, patch } = req.body
+
+    if (!engine || !executionId) {
+      return reply.code(400).send({
+        error: 'engine and executionId required'
+      })
+    }
+
+    const runId = getRunIdByContext({ engine, executionId })
+
+    if (!runId) {
+      return reply.code(404).send({
+        error: 'state not found for context'
+      })
+    }
+
+    const state = getState(runId)
+
+    if (!state) {
+      return reply.code(404).send({
+        error: 'state not found'
+      })
+    }
+
+    deepMerge(state, patch)
+
+    setState(runId, state)
+
+    return state
   })
 }
